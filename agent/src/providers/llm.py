@@ -265,6 +265,76 @@ def _openai_custom_header_names(raw: str | None) -> tuple[str, ...]:
     return tuple(dict.fromkeys(names))
 
 
+class ModelflareAPIError(RuntimeError):
+    """User-facing Modelflare failure that keeps the HTTP status for retries."""
+
+    def __init__(self, message: str, *, status_code: int | None, response: Any = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.response = response
+        self.message = message
+
+
+def _exception_status(exc: BaseException) -> int | None:
+    status = getattr(exc, "status_code", None)
+    if status is None:
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+    try:
+        return int(status) if status is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _exception_text(exc: BaseException) -> str:
+    parts: list[str] = []
+    message = getattr(exc, "message", None)
+    if isinstance(message, str) and message:
+        parts.append(message)
+    body = getattr(exc, "body", None)
+    if isinstance(body, str) and body:
+        parts.append(body)
+    elif body is not None:
+        parts.append(str(body))
+    response = getattr(exc, "response", None)
+    text = getattr(response, "text", None) if response is not None else None
+    if isinstance(text, str) and text:
+        parts.append(text[:4000])
+    parts.append(str(exc))
+    return "\n".join(parts)
+
+
+def _llm_model_name(llm: Any) -> str:
+    for name in ("model_name", "model"):
+        value = getattr(llm, name, None)
+        if value:
+            return str(value)
+    return ""
+
+
+def _llm_base_url(llm: Any) -> str | None:
+    for name in ("openai_api_base", "base_url"):
+        value = getattr(llm, name, None)
+        if value:
+            return str(value)
+    return None
+
+
+def _raise_modelflare_error(llm: Any, exc: BaseException) -> None:
+    """Raise a short Modelflare hint, or return so the caller re-raises ``exc``."""
+    from src.providers.modelflare_errors import explain
+
+    status = _exception_status(exc)
+    friendly = explain(status, _exception_text(exc), _llm_model_name(llm), _llm_base_url(llm))
+    if not friendly:
+        return
+    raise ModelflareAPIError(
+        friendly,
+        status_code=status,
+        response=getattr(exc, "response", None),
+    ) from exc
+
+
 if ChatOpenAI is not None:
 
     class ChatOpenAIWithReasoning(ChatOpenAI):  # type: ignore[misc,valid-type]
@@ -556,6 +626,7 @@ if ChatOpenAI is not None:
                 return super()._generate(*args, **kwargs)
             except Exception as exc:  # noqa: BLE001 - retried or re-raised below
                 if not self._recoverable_rejection(exc):
+                    _raise_modelflare_error(self, exc)
                     raise
                 return super()._generate(*args, **kwargs)
 
@@ -564,6 +635,7 @@ if ChatOpenAI is not None:
                 return await super()._agenerate(*args, **kwargs)
             except Exception as exc:  # noqa: BLE001 - retried or re-raised below
                 if not self._recoverable_rejection(exc):
+                    _raise_modelflare_error(self, exc)
                     raise
                 return await super()._agenerate(*args, **kwargs)
 
@@ -649,6 +721,7 @@ if ChatOpenAI is not None:
                     yield chunk
             except Exception as exc:  # noqa: BLE001 - retried or re-raised below
                 if emitted or not self._recoverable_rejection(exc):
+                    _raise_modelflare_error(self, exc)
                     raise
                 yield from self._stream(*args, **kwargs)
 
@@ -717,6 +790,7 @@ if ChatOpenAI is not None:
                     yield chunk
             except Exception as exc:  # noqa: BLE001 - retried or re-raised below
                 if emitted or not self._recoverable_rejection(exc):
+                    _raise_modelflare_error(self, exc)
                     raise
                 async for chunk in self._astream(*args, **kwargs):
                     yield chunk

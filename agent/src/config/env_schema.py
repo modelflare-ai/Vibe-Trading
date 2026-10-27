@@ -160,7 +160,7 @@ class LLMConfig(_EnvBase):
     ``src/preflight.py``.
     """
 
-    langchain_provider: str = Field(alias="LANGCHAIN_PROVIDER", default="openai")
+    langchain_provider: str = Field(alias="LANGCHAIN_PROVIDER", default="modelflare")
     langchain_model_name: str = Field(alias="LANGCHAIN_MODEL_NAME", default="")
     langchain_temperature: float = Field(alias="LANGCHAIN_TEMPERATURE", default=0.0)
     # The native Anthropic credential. Read through bare ``os.getenv`` in

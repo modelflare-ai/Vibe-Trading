@@ -51,7 +51,12 @@ class Provider:
 
 
 PROVIDERS: Final[tuple[Provider, ...]] = (
-    Provider("openrouter", "OpenRouter", "recommended — 200+ models, one key",
+    Provider("modelflare", "Modelflare", "recommended — one key, strong models",
+             "gpt-6-sol", "MODELFLARE_API_KEY", "MODELFLARE_BASE_URL",
+             "https://modelflare.dev/v1", "sk-",
+             ("gpt-6-sol", "gpt-6-astra", "claude-sonnet-5",
+              "claude-opus-5-5", "gemini-3.1-pro-preview", "grok-4.7")),
+    Provider("openrouter", "OpenRouter", "200+ models, one key",
              "deepseek/deepseek-v4-pro",
              "OPENROUTER_API_KEY", "OPENROUTER_BASE_URL",
              "https://openrouter.ai/api/v1", "sk-or-",

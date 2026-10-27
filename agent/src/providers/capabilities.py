@@ -197,6 +197,11 @@ _CLAUDE_CLI_CAPABILITIES = ProviderCapabilities("claude-cli", None, "CLAUDE_CLI_
 
 
 _PROVIDERS: dict[str, ProviderCapabilities] = {
+    "modelflare": ProviderCapabilities(
+        "modelflare",
+        "MODELFLARE_API_KEY",
+        "MODELFLARE_BASE_URL",
+    ),
     # ``gpt-5.6-*`` reject function tools on /v1/chat/completions unless the
     # request carries an explicit ``reasoning_effort`` — including the literal
     # "none" — so this one is required, not merely accepted. Still gated on the

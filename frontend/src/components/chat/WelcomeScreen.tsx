@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, TrendingUp, Globe, Sparkles, Users, UserCircle2, NotebookPen, Landmark, Gem, Search, WalletCards } from "lucide-react";
 import { BrandMark } from "@/components/common/BrandMark";
+import { ModelflareKeyCard } from "@/components/onboarding/ModelflareKeyCard";
 
 interface Example {
   titleKey: string;
@@ -257,6 +258,7 @@ export function WelcomeScreen({ onExample }: Props) {
             {t("welcome.taskSubtitle" as any)}
             <span className="mt-2 block text-xs">{t("welcome.tasks.hint")}</span>
           </p>
+          <ModelflareKeyCard />
         </div>
 
         <div

@@ -989,6 +989,8 @@ export interface LLMModelsResponse {
     | "api_key_required"
     | "model_list_unavailable"
     | null;
+  /** Bilingual Modelflare hint when the model list failed. */
+  warning_detail?: string | null;
   /** Model id -> reasoning effort levels it accepts; empty means none. */
   effort_levels?: Record<string, string[]> | null;
 }

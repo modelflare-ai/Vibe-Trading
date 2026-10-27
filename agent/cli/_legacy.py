@@ -3608,9 +3608,11 @@ def cmd_live_authorize(broker: str) -> int:
 def cmd_provider_doctor() -> int:
     """Print redacted provider diagnostics."""
     from src.providers.llm import provider_diagnostics
+    from cli.mf_onboard import maybe_prompt_modelflare_key
 
+    mf_code = maybe_prompt_modelflare_key()
     console.print_json(data=provider_diagnostics())
-    return EXIT_SUCCESS
+    return EXIT_SUCCESS if mf_code in (None, 0) else mf_code
 
 
 def _format_expiry_countdown(expires_at: str) -> str:

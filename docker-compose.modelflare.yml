@@ -1,0 +1,11 @@
+# One-key overlay. Empty shell values are not applied to the main compose file,
+# because they would override agent/.env. Use this file when the key is only
+# in the shell:
+#   MODELFLARE_API_KEY=sk-xxx docker compose -f docker-compose.yml -f docker-compose.modelflare.yml up -d
+services:
+  vibe-trading:
+    environment:
+      - LANGCHAIN_PROVIDER=${LANGCHAIN_PROVIDER:-modelflare}
+      - LANGCHAIN_MODEL_NAME=${LANGCHAIN_MODEL_NAME:-gpt-6-sol}
+      - MODELFLARE_API_KEY=${MODELFLARE_API_KEY:?Set MODELFLARE_API_KEY}
+      - MODELFLARE_BASE_URL=${MODELFLARE_BASE_URL:-https://modelflare.dev/v1}

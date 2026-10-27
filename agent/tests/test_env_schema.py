@@ -89,7 +89,7 @@ class TestEnvConfigDefaults:
 
     def test_llm_defaults(self) -> None:
         c = EnvConfig()
-        assert c.llm.langchain_provider == "openai"
+        assert c.llm.langchain_provider == "modelflare"
         assert c.llm.langchain_model_name == ""
         assert c.llm.langchain_temperature == 0.0
         assert c.llm.timeout_seconds == 120
@@ -352,7 +352,7 @@ class TestEnvConfigOverride:
         monkeypatch.delenv("TUSHARE_TOKEN")
 
         c2 = EnvConfig()
-        assert c2.llm.langchain_provider == "openai"
+        assert c2.llm.langchain_provider == "modelflare"
         assert c2.llm.timeout_seconds == 120
         assert c2.data.tushare_token == ""
 

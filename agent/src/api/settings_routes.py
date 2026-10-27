@@ -112,6 +112,9 @@ class LLMModelsResponse(BaseModel):
     models: List[str]
     source: str
     warning_code: Optional[ModelDiscoveryWarningCode] = None
+    # Bilingual Modelflare hint when the model list itself failed. Other
+    # providers leave this empty and keep ``warning_code``.
+    warning_detail: Optional[str] = None
     # Model id -> reasoning effort levels it accepts; an empty list means the
     # model takes no effort setting. Only providers that report it fill this.
     effort_levels: Optional[Dict[str, List[str]]] = None
@@ -315,6 +318,17 @@ def _extract_model_ids(payload: Any) -> List[str]:
     return sorted(model_ids, key=str.casefold)[:1000]
 
 
+def _modelflare_http_detail(exc: httpx.HTTPStatusError, *, model: str, base_url: str) -> Optional[str]:
+    """Friendly Modelflare copy for a failed model list, else ``None``."""
+    try:
+        text = exc.response.text
+    except Exception:  # noqa: BLE001 - body is optional
+        text = str(exc)
+    from src.providers.modelflare_errors import explain
+
+    return explain(exc.response.status_code, text, model, base_url)
+
+
 async def _list_provider_models(
     provider: LLMProviderOption,
     *,
@@ -357,12 +371,32 @@ async def _list_provider_models(
             response = await client.get(_model_list_url(base_url), headers=headers)
             response.raise_for_status()
             models = _extract_model_ids(response.json())
+    except httpx.HTTPStatusError as exc:
+        return LLMModelsResponse(
+            provider=provider.name,
+            models=fallback,
+            source="default",
+            warning_code="model_list_unavailable",
+            warning_detail=_modelflare_http_detail(
+                exc, model=provider.default_model, base_url=base_url
+            ),
+        )
     except (httpx.HTTPError, ValueError):
         return LLMModelsResponse(
             provider=provider.name,
             models=fallback,
             source="default",
             warning_code="model_list_unavailable",
+        )
+
+    # Modelflare presets are the strong models only. Live discovery also
+    # returns cheap ids; those must not appear in the picker.
+    if provider.name == "modelflare":
+        allowed = list(provider.model_options or fallback)
+        return LLMModelsResponse(
+            provider=provider.name,
+            models=allowed,
+            source="provider",
         )
 
     # Prefer configured recommendations without deleting discovered routes.
@@ -420,7 +454,7 @@ def _build_llm_settings_response(
     """Build the public settings payload from dotenv values."""
     host = _host()
     env_values = values if values is not None else _read_settings_env_values()
-    provider_name = env_values.get("LANGCHAIN_PROVIDER", "openai").strip().lower()
+    provider_name = env_values.get("LANGCHAIN_PROVIDER", "modelflare").strip().lower()
     provider = LLM_PROVIDER_BY_NAME.get(provider_name, LLM_PROVIDER_BY_NAME["openai"])
     api_key = env_values.get(provider.api_key_env or "", "") if provider.api_key_env else ""
     api_key_configured = host._is_configured_secret(api_key, LLM_API_KEY_PLACEHOLDERS)

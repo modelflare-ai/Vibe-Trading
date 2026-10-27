@@ -87,7 +87,7 @@ def test_loaded_dotenv_refreshes_cached_env_config(tmp_path, fresh, monkeypatch)
 
     reset_env_config()
     cached_before_load = get_env_config()
-    assert cached_before_load.llm.langchain_provider == "openai"
+    assert cached_before_load.llm.langchain_provider == "modelflare"
 
     llm._ensure_dotenv()
 

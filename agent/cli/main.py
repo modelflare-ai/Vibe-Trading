@@ -1495,6 +1495,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     if interactive:
         if not _maybe_run_onboarding():
             return 0
+        from cli.mf_onboard import maybe_prompt_modelflare_key
+        if (mf_code := maybe_prompt_modelflare_key()) not in (None, 0):
+            return mf_code
         _show_banner()
         # Strip the optional ``chat`` token + any ``--max-iter`` flag so
         # the new loop can read them directly without re-parsing argv.

@@ -1,4 +1,13 @@
-[
+[{
+    "name": "modelflare",
+    "label": "Modelflare (recommended)",
+    "api_key_env": "MODELFLARE_API_KEY",
+    "base_url_env": "MODELFLARE_BASE_URL",
+    "default_model": "gpt-6-sol",
+    "default_base_url": "https://modelflare.dev/v1",
+    "api_key_required": true,
+    "model_options": ["gpt-6-sol", "gpt-6-astra", "claude-sonnet-5", "claude-opus-5-5", "gemini-3.1-pro-preview", "grok-4.7"]
+  },
   {
     "name": "openrouter",
     "label": "OpenRouter",

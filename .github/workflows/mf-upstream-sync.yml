@@ -1,0 +1,79 @@
+name: Sync upstream Vibe-Trading
+
+# Weekly merge (never rebase) of HKUDS/Vibe-Trading. On conflict, abort and
+# open an issue. Do not delete upstream workflows such as docker-build.yml.
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MF_SYNC_TOKEN || github.token }}
+          persist-credentials: true
+
+      - name: Merge upstream
+        id: sync
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/HKUDS/Vibe-Trading.git 2>/dev/null || git remote set-url upstream https://github.com/HKUDS/Vibe-Trading.git
+          git fetch upstream
+          DATE=$(date -u +%Y-%m-%d)
+          BRANCH="sync/upstream-${DATE}"
+          git checkout -B "$BRANCH"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "date=${DATE}" >> "$GITHUB_OUTPUT"
+          if ! git merge --no-edit --no-ff upstream/main; then
+            git merge --abort || true
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "conflict=false" >> "$GITHUB_OUTPUT"
+          git push origin "HEAD:${BRANCH}"
+
+      - name: Open pull request
+        if: steps.sync.outputs.conflict == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.MF_SYNC_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.sync.outputs.branch }}"
+          BASE="${{ github.event.repository.default_branch }}"
+          existing=$(gh pr list --base "$BASE" --head "$BRANCH" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            echo "Pull request #${existing} already open"
+            exit 0
+          fi
+          gh pr create --base "$BASE" --head "$BRANCH" \
+            --title "sync: upstream Vibe-Trading ${BRANCH}" \
+            --body "Weekly merge (never rebase) of https://github.com/HKUDS/Vibe-Trading.git into this Modelflare fork. Upstream workflows such as docker-build.yml are kept."
+
+      - name: Open conflict issue
+        if: steps.sync.outputs.conflict == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.MF_SYNC_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          DATE="${{ steps.sync.outputs.date }}"
+          TITLE="upstream sync conflict ${DATE}"
+          existing=$(gh issue list --search "${TITLE} in:title" --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            echo "Issue #${existing} already open"
+            exit 0
+          fi
+          gh issue create --title "$TITLE" \
+            --body "\`git merge\` of https://github.com/HKUDS/Vibe-Trading.git (\`upstream/main\`) into \`${{ steps.sync.outputs.branch }}\` hit a conflict. \`git merge --abort\` was run. Resolve by hand; do not rebase. Do not delete upstream workflows such as docker-build.yml."

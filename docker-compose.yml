@@ -3,6 +3,10 @@ services:
     build: .
     ports:
       - "127.0.0.1:8899:8899"
+    # MODELFLARE_API_KEY is loaded from agent/.env (env_file). Compose sees a
+    # shell MODELFLARE_API_KEY for interpolation, but an empty `environment`
+    # entry would override the file, so the key stays in agent/.env. Pass a
+    # one-off key with `docker run -e MODELFLARE_API_KEY=...` instead.
     env_file:
       - agent/.env
     environment:
