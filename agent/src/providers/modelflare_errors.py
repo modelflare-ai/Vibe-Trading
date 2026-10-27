@@ -11,7 +11,7 @@ import re
 from urllib.parse import urlparse
 
 _KEYS_URL = "https://modelflare.dev/keys"
-_DASHBOARD_URL = "https://modelflare.dev/dashboard"
+_WALLET_URL = "https://modelflare.dev/wallet"
 _QUOTA_RE = re.compile(r"quota|balance|insufficient|额度|余额", re.IGNORECASE)
 
 
@@ -86,8 +86,8 @@ def explain(
     )
     if code == 402 or (quota and not group_error):
         return (
-            f"Modelflare 余额不足，请充值：{_DASHBOARD_URL}\n"
-            f"Insufficient Modelflare balance. Top up at {_DASHBOARD_URL}"
+            f"Modelflare 余额不足，请充值：{_WALLET_URL}\n"
+            f"Insufficient Modelflare balance. Top up at {_WALLET_URL}"
         )
     if group_error or code == 403:
         return (
